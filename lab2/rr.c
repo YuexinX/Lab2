@@ -210,8 +210,8 @@ u32 partition(struct process **data, u32 start, u32 end){
 void quick_sort(struct process **data, u32 start, u32 end){
   if (end - start >= 1){
     u32 pivot;
-    pivot = partition(*data, start, end);
-    quick_sort(*data, start, pivot - 1);
-    quick_sort(*data, pivot + 1, end);
+    pivot = partition(data, start, end);
+    quick_sort(data, start, pivot - 1);
+    quick_sort(data, pivot + 1, end);
   } 
 }
