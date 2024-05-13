@@ -1,28 +1,40 @@
 # You Spin Me Round Robin
 
-TODO
+A implementation for round robin shceduling for a given workload and quantum length.
 
 ## Building
 
 ```shell
-TODO
+make
 ```
 
 ## Running
 
 cmd for running TODO
+
 ```shell
-TODO
+
+./rr fileName quantumNum
+
+ex: ./rr processes.txt 3
+
 ```
 
-results TODO
+
+results 
+
+expected output:
+
 ```shell
-TODO
+
+Average waiting time: 7.00
+Average response time: 2.75
 
 ```
+
 
 ## Cleaning up
 
 ```shell
-TODO
+make clean
 ```

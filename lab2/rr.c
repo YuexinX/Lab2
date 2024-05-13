@@ -143,8 +143,16 @@ void init_processes(const char *path,
   close(fd);
 }
 
-u32 partition(struct process **data, u32 start, u32 end);
-void quick_sort(struct process **data, u32 start, u32 end);
+
+bool if_finished(struct process *data, u32 size){
+  struct process *current_process;
+  for (u32 i=0; i<size; i++){
+    current_process = &data[i];
+    if(current_process->remaining_burst_time != 0)
+      return false;
+  }
+  return true;
+}
 
 int main(int argc, char *argv[])
 {
@@ -167,15 +175,93 @@ int main(int argc, char *argv[])
   u32 total_response_time = 0;
 
   /* Your code here */
-  //sort processes by arrival time
-  quick_sort(&data, 0, size - 1);
-  struct process *current_process;
-  for (u32 i = 0; i < size; i++){
-    struct process *process = &data[i];
-    printf("pid: %d, arrival_time: %d, burst_time: %d\n", process->pid, process->arrival_time, process->burst_time);
 
+  u32 current_time = data[0].arrival_time;
+  u32 current_quantum = 1;
+  bool finished = false;
+  struct process *current_process;
+  for (u32 i = 0; i<size; i++){
+    current_process = &data[i];
+    current_process->remaining_burst_time = current_process->burst_time;
+    current_process->initialized = false;
+    if (current_process->arrival_time < current_time){
+      current_time = current_process->arrival_time;
+    }
   }
 
+  //  for (u32 i = 0; i < size; i++){
+  //   struct process *process = &data[i];
+  //   printf("pid: %d, arrival_time: %d, burst_time: %d, remaining_burst_time: %d, initialized: %d\n", process->pid, process->arrival_time, process->burst_time, process->remaining_burst_time, process->initialized);
+
+  // }
+  struct process *new_process;
+
+  while(!finished){
+    //add new arriving process to the list
+    // printf("current_time: %d, current_quantum:%d, finished:%d\n", current_time, current_quantum, finished);
+    for (u32 i = 0; i<size; i++){
+      new_process = &data[i];
+      if (new_process->arrival_time == current_time){
+        TAILQ_INSERT_TAIL(&list, new_process, pointers);
+      }
+    }
+    //if current process is done with quantum and is not burst yet
+
+    if (current_process && current_quantum == quantum_length+1 && current_process->remaining_burst_time > 0){
+      current_quantum = 1;
+      TAILQ_INSERT_TAIL(&list, current_process, pointers);
+    }
+
+    //if at the beginning of a new round, get the next process from the list
+    if(!current_process && TAILQ_EMPTY(&list)){
+      // printf("check empty point: %d\n", current_time);
+      current_quantum = 0;
+    }
+    else if(current_quantum == 1){
+      current_process = TAILQ_FIRST(&list);
+      TAILQ_REMOVE(&list, current_process, pointers);
+    }
+    
+    // //debug message
+    // if(current_process){
+    //     printf("current_time: %d, current_quantum:%d, current_process:%d\n", current_time, current_quantum, current_process->pid);
+    // }
+    // else{
+    //     printf("current_time: %d, current_quantum:%d\n", current_time, current_quantum);
+    // }
+
+    if(current_process){
+      //if current process is not initialized, initialize it
+      if (!current_process->initialized){
+        current_process->initialized = true;
+        total_response_time = total_response_time + current_time - current_process->arrival_time;
+      }
+
+      //if we are in the middle of a quantum
+      if (current_quantum < (quantum_length+1) && current_process->remaining_burst_time > 0){
+        current_process->remaining_burst_time = current_process->remaining_burst_time - 1;
+      }
+
+      
+
+      //if current process is done
+      if (current_process->remaining_burst_time == 0){
+        total_waiting_time = total_waiting_time + current_time - current_process->arrival_time - current_process->burst_time + 1;
+        current_quantum = 0;
+        TAILQ_REMOVE(&list, current_process, pointers);
+        current_process = NULL;
+      }
+    }
+
+
+    
+    finished = if_finished(data, size);
+    current_time++;
+    current_quantum++;
+
+    
+  }
+  
 
 
   /* End of "Your code here" */
@@ -185,33 +271,4 @@ int main(int argc, char *argv[])
 
   free(data);
   return 0;
-}
-
-u32 partition(struct process **data, u32 start, u32 end){
-  u32 pi = start;
-  u32 pivot = (*data)[start].arrival_time;
-  do{
-    while (start <= end && (*data)[start].arrival_time <= pivot)
-      start++;
-    while ((*data)[end].arrival_time > pivot)
-      end--;
-    if (start < end){
-      struct process temp = (*data)[start];
-      (*data)[start] = (*data)[end];
-      (*data)[end] = temp;
-    }
-  }while (start < end);
-  struct process temp = (*data)[pi];
-  (*data)[pi] = (*data)[end];
-  (*data)[end] = temp;
-  return end;
-}
-
-void quick_sort(struct process **data, u32 start, u32 end){
-  if (end - start >= 1){
-    u32 pivot;
-    pivot = partition(data, start, end);
-    quick_sort(data, start, pivot - 1);
-    quick_sort(data, pivot + 1, end);
-  } 
 }
